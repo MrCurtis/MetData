@@ -11,3 +11,20 @@
     - name: Install python requirements
       pip:
         requirements: /vagrant/requirements.txt
+    - name: Make symlink python->python3 - allows ansible to use django_manage
+      file:
+        src: /usr/bin/python3
+        dest: /usr/bin/python
+        state: link
+    - name: Setup database
+      django_manage:
+        command: "migrate"
+        app_path: "/vagrant/met_data/"
+    - name: Populate database from Met Office data
+      django_manage:
+        command: "get_data_from_met_office"
+        app_path: "/vagrant/met_data/"
+    - name: Run server on port 8000
+      django_manage:
+        command: "runserver 0:8000"
+        app_path: "/vagrant/met_data"
