@@ -1,0 +1,22 @@
+.wrapper-div{
+	text-align:center
+}
+#selector-panel input {
+	display: inline-block
+}
+#selector-panel input {
+	  display: none;
+ }
+
+#selector-panel label {
+	display: inline-block;
+	background-color: #ddd;
+	padding: 4px 11px;
+	font-family: Arial;
+	font-size: 16px;
+	cursor: pointer;
+}
+
+#selector-panel input:checked+label {
+	background-color: #aaa;
+}

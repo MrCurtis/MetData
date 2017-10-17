@@ -4,12 +4,43 @@
   <head>
     <meta charset="UTF-8">
     <title>Met Data</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
+    <link href="{% static "historical_data/main.css" %}" rel="stylesheet" type="text/css" media="all">
   </head>
   <body style="margin: 0;">
-    <p>Hello world</p>
-    <div class="ct-chart ct-perfect-fourth"></div>
-    <script src="https://cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
+    <div class="wrapper-div">
+    <div id="selector-panel" style="width:100%;">
+	    <p>Data Type</p>
+	    <div id="type-select">
+		    <input type="radio" id="select-rainfall" name="value-type" value="rainfall"/>
+		    <label for="select-rainfall"><span></span>Rainfall</label>
+		    <input type="radio" id="select-sunshine" name="value-type" value="sunshine"/>
+		    <label for="select-sunshine"><span></span>Sunshine</label>
+		    <input type="radio" id="select-maxtemp" name="value-type" value="maxtemp"/>
+		    <label for="select-maxtemp"><span></span>Max Temperature</label>
+		    <input type="radio" id="select-mintemp" name="value-type" value="mintemp"/>
+		    <label for="select-mintemp"><span></span>Min Temerature</label>
+		    <input type="radio" id="select-meantemp" name="value-type" value="meantemp"/>
+		    <label for="select-meantemp"><span></span>Mean Temperature</label>
+	    </div>
+	    <p>Region</p>
+	    <div id="region-check"></div>
+		    <input type="checkbox" id="check-uk" name="region" value="uk" />
+		    <label for="check-uk"><span></span>UK</label>
+		    <input type="checkbox" id="check-england" name="region" value="england" />
+	            <label for="check-england"><span></span>England</label>
+		    <input type="checkbox" id="check-scotland" name="region" value="scotland" />
+		    <label for="check-scotland"><span></span>Scotland</label>
+		    <input type="checkbox" id="check-wales" name="region" value="wales" />
+	            <label for="check-wales"><span></span>Wales</label>
+	    </div>
+    </div>    
+    <div>
+    <div id="tester" style="width:100%;"></div>
+    <script
+	src="https://code.jquery.com/jquery-3.2.1.min.js"
+	integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+	crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script type="text/javascript" src="{% static "historical_data/main.js" %}"></script>
   </body>
 </html>
