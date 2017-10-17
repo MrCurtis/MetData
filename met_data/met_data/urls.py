@@ -19,5 +19,6 @@ from historical_data import views
 
 urlpatterns = [
     url(r'^$', views.index),
+    url(r'^time-series/(?P<value_type_string>[^/]+)/(?P<regions_string>[^/]+)', views.time_series),
     url(r'^admin/', admin.site.urls),
 ]
