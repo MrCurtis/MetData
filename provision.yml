@@ -18,13 +18,13 @@
         state: link
     - name: Setup database
       django_manage:
-        command: "migrate"
-        app_path: "/vagrant/met_data/"
+        command: 'migrate'
+        app_path: '/vagrant/met_data/'
     - name: Populate database from Met Office data
       django_manage:
         command: "get_data_from_met_office"
         app_path: "/vagrant/met_data/"
-    - name: Run server on port 8000
-      django_manage:
-        command: "runserver 0:8000"
-        app_path: "/vagrant/met_data"
+    - name: Start the django server in background
+      shell: 'cd /vagrant/met_data; nohup python manage.py runserver 0:8000 </dev/null >/dev/null 2>&1 &'
+      args:
+        chdir: '/vagrant/met_data'
