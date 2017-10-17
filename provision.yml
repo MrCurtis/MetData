@@ -16,7 +16,11 @@
         src: /usr/bin/python3
         dest: /usr/bin/python
         state: link
-    - name: Setup database
+    - name: Setup database (makemigrations)
+      django_manage:
+        command: 'makemigrations historical_data'
+        app_path: '/vagrant/met_data/'
+    - name: Setup database (migrate)
       django_manage:
         command: 'migrate'
         app_path: '/vagrant/met_data/'
