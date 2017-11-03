@@ -1,3 +1,4 @@
+from unittest import skip
 from django.test import TestCase
 from historical_data.models import (
         HistoricalData,
@@ -9,6 +10,7 @@ from historical_data.models import (
 from historical_data.met_data_getter import  Month, Region, ValueType
 from historical_data.met_data_getter import  DataPoint
 from django.db.utils import IntegrityError
+from django.core.exceptions import ValidationError
 
 
 class GetTimeSeriesTests(TestCase):
@@ -92,7 +94,7 @@ class GetTimeSeriesTests(TestCase):
 
 class CreateOrUpdateDataPointTests(TestCase):
 
-    def test_create_or_update__creates_if_no_entry_for_time_and_region_exists(self):
+    def test_creates_if_no_entry_for_time_region_and_data_type_exists(self):
         create_or_update_data_point(
             region=Region.UK,
             year=1987,
@@ -104,80 +106,208 @@ class CreateOrUpdateDataPointTests(TestCase):
             entry = HistoricalData.objects.get(
                 region=region_mapper[Region.UK],
                 year=1987,
-                month=month_mapper[Month.MAY])
+                month=month_mapper[Month.MAY],
+                value_type=value_type_mapper[ValueType.MAX_TEMP])
         except HistoricalData.ObjectNotFound:
             self.fail("Did not create object")
 
-        self.assertEqual(entry.max_temp, 123.45)
+        self.assertEqual(entry.value, 123.45)
 
-    def test_create_or_update__updates_if_entry_for_time_and_region_exists(self):
+    def test_creates_if_datapoint_varies_from_existing_by_year(self):
+        year_1 = 1982
+        value_1 = 12.5
+        year_2 = 1999
+        value_2 = 45.0
         create_or_update_data_point(
             region=Region.UK,
-            year=1987,
+            year=year_1,
             month=Month.MAY,
             value_type=ValueType.MAX_TEMP,
-            value=123.45)
+            value=value_1)
         create_or_update_data_point(
             region=Region.UK,
-            year=1987,
+            year=year_2,
             month=Month.MAY,
-            value_type=ValueType.SUNSHINE,
-            value=9.1)
+            value_type=ValueType.MAX_TEMP,
+            value=value_2)
+        expected = {
+            (year_1, value_1),
+            (year_2, value_2)}
+
+        entries = HistoricalData.objects.filter(
+            region=region_mapper[Region.UK],
+            month=month_mapper[Month.MAY],
+            value_type=value_type_mapper[ValueType.MAX_TEMP])
+        returned = {
+            (entry.year, entry.value) for entry in entries}
+
+        self.assertEqual(returned, expected)
+
+    def test_creates_if_datapoint_varies_from_existing_by_month(self):
+        month_1 = Month.MAY
+        value_1 = 2.4
+        month_2 = Month.JUN
+        value_2 = 6.34
+        create_or_update_data_point(
+            region=Region.UK,
+            year=1980,
+            month=month_1,
+            value_type=ValueType.MAX_TEMP,
+            value=value_1)
+        create_or_update_data_point(
+            region=Region.UK,
+            year=1980,
+            month=month_2,
+            value_type=ValueType.MAX_TEMP,
+            value=value_2)
+        expected = {
+            (month_mapper[month_1], value_1),
+            (month_mapper[month_2], value_2)}
+
+        entries = HistoricalData.objects.filter(
+            region=region_mapper[Region.UK],
+            year=1980,
+            value_type=value_type_mapper[ValueType.MAX_TEMP])
+        returned = {
+            (entry.month, entry.value) for entry in entries}
+
+        self.assertEqual(returned, expected)
+
+    def test_creates_if_datapoint_varies_from_existing_by_region(self):
+        region_1 = Region.UK
+        value_1 = 9.2
+        region_2 = Region.WALES
+        value_2 = 5.2
+        create_or_update_data_point(
+            region=region_1,
+            year=1980,
+            month=Month.MAY,
+            value_type=ValueType.MAX_TEMP,
+            value=value_1)
+        create_or_update_data_point(
+            region=region_2,
+            year=1980,
+            month=Month.MAY,
+            value_type=ValueType.MAX_TEMP,
+            value=value_2)
+        expected = {
+            (region_mapper[region_1], value_1),
+            (region_mapper[region_2], value_2)}
+
+        entries = HistoricalData.objects.filter(
+            year=1980,
+            month=month_mapper[Month.MAY],
+            value_type=value_type_mapper[ValueType.MAX_TEMP])
+        returned = {
+            (entry.region, entry.value) for entry in entries}
+
+        self.assertEqual(returned, expected)
+
+    def test_creates_if_datapoint_varies_from_existing_by_value_type(self):
+        value_type_1 = ValueType.MAX_TEMP
+        value_1 = 45.1
+        value_type_2 = ValueType.MIN_TEMP
+        value_2 = 4.1
+        create_or_update_data_point(
+            region=Region.UK,
+            year=1980,
+            month=Month.MAY,
+            value_type=value_type_1,
+            value=value_1)
+        create_or_update_data_point(
+            region=Region.UK,
+            year=1980,
+            month=Month.MAY,
+            value_type=value_type_2,
+            value=value_2)
+        expected = {
+            (value_type_mapper[value_type_1], value_1),
+            (value_type_mapper[value_type_2], value_2)}
+
+        entries = HistoricalData.objects.filter(
+            region=region_mapper[Region.UK],
+            year=1980,
+            month=month_mapper[Month.MAY])
+        returned = {
+            (entry.value_type, entry.value) for entry in entries}
+
+        self.assertEqual(returned, expected)
+
+    def test_updates_if_datapoint_varies_from_existing_by_value_only(self):
+        initial_value = 23.
+        new_value = 56.7
+
+        create_or_update_data_point(
+            region=Region.UK,
+            year=1980,
+            month=Month.MAY,
+            value_type=ValueType.MAX_TEMP,
+            value=initial_value)
+        create_or_update_data_point(
+            region=Region.UK,
+            year=1980,
+            month=Month.MAY,
+            value_type=ValueType.MAX_TEMP,
+            value=new_value)
 
         try:
             entry = HistoricalData.objects.get(
                 region=region_mapper[Region.UK],
-                year=1987,
+                year=1980,
+                value_type=value_type_mapper[ValueType.MAX_TEMP],
                 month=month_mapper[Month.MAY])
-        except HistoricalData.ObjectNotFound:
-            self.fail("Did not create object")
-        except HistoricalData.MultipleObjectReturned:
+        except HistoricalData.MultipleObjectsReturned:
             self.fail("Created multiple objects")
 
-        self.assertEqual(entry.max_temp, 123.45)
-        self.assertEqual(entry.sunshine, 9.1)
-
-    # TODO - Tests for raising ValueError
+        self.assertEqual(entry.value, new_value)
 
 
 class HistoricalDataTests(TestCase):
 
-    # TODO -These tests should all assert something
-
-    def test_can_create_data_point_with_all_value_types(self):
+    def test_can_create_data_point_when_all_fields_specified(self):
         historical_data = HistoricalData(
             year=2001,
             month=12,
-            region=4,
-            max_temp=23.4,
-            min_temp=16.2,
-            mean_temp=20.0,
-            sunshine=23.1,
-            rainfall=34.0)
+            region="wales",
+            value_type="max_temp",
+            value=34.5)
         historical_data.save()
 
-    def test_can_create_data_point_with_some_value_types_missing(self):
-        historical_data = HistoricalData(
-            year=1985,
-            month=5,
-            region=3,
-            max_temp=21.4,
-            min_temp=16.2,
-            rainfall=32.0)
-        historical_data.save()
+    def test_cannot_create_data_point_without_value_type(self):
+        try:
+            historical_data = HistoricalData(
+                year=1967,
+                month=3,
+                region="uk",
+                value=19.43)
+            historical_data.save()
+        except (IntegrityError, ValidationError):
+            pass
+        else:
+            self.fail("Should not be able to create without value type.")
+
+    def test_cannot_create_data_point_without_value(self):
+        try:
+            historical_data = HistoricalData(
+                year=1967,
+                month=3,
+                region="uk",
+                value_type="max_temp")
+            historical_data.save()
+        except (IntegrityError, ValidationError):
+            pass
+        else:
+            self.fail("Should not be able to create without value.")
 
     def test_cannot_create_data_point_without_year(self):
         try:
             historical_data = HistoricalData(
                 month=3,
-                region=1,
-                max_temp=23.4,
-                min_temp=16.2,
-                mean_temp=20.0,
-                sunshine=23.1,
-                rainfall=34.0)
+                region="uk",
+                value_type="mean_temp",
+                value=4.2)
             historical_data.save()
-        except IntegrityError:
+        except (IntegrityError, ValidationError):
             pass
         else:
             self.fail("Should not be able to create without year.")
@@ -186,14 +316,11 @@ class HistoricalDataTests(TestCase):
         try:
             historical_data = HistoricalData(
                 year=2001,
-                region=2,
-                max_temp=23.4,
-                min_temp=16.2,
-                mean_temp=20.0,
-                sunshine=23.1,
-                rainfall=34.0)
+                region="england",
+                value_type="mean_temp",
+                value=4.2)
             historical_data.save()
-        except IntegrityError:
+        except (IntegrityError, ValidationError):
             pass
         else:
             self.fail("Should not be able to create without month.")
@@ -203,13 +330,10 @@ class HistoricalDataTests(TestCase):
             historical_data = HistoricalData(
                 year=2001,
                 month=4,
-                max_temp=23.4,
-                min_temp=16.2,
-                mean_temp=20.0,
-                sunshine=23.1,
-                rainfall=34.0)
+                value_type="mean_temp",
+                value=4.2)
             historical_data.save()
-        except IntegrityError:
+        except (IntegrityError, ValidationError):
             pass
         else:
             self.fail("Should not be able to create without region.")

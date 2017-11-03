@@ -1,13 +1,14 @@
 from collections import defaultdict
 from django.db import models
+from django.core.validators import MinLengthValidator
 
 from historical_data.met_data_getter import Region, Month, ValueType
 
 region_mapper = {
-    Region.UK: 1,
-    Region.ENGLAND: 2,
-    Region.SCOTLAND: 3,
-    Region.WALES: 4}
+    Region.UK: "uk",
+    Region.ENGLAND: "england",
+    Region.SCOTLAND: "scotland",
+    Region.WALES: "wales"}
 
 month_mapper = {
     Month.JAN: 1,
@@ -43,7 +44,7 @@ def get_time_series(value_type, regions):
       and regions. The dictionary will have the following form:
         {
           "value_type": "<value_type>"
-          "labels": ["<date_1>", "<date_2>",...,"date_n"],
+          "labels": ["<date_1>", "<date_2>",...,"<date_n>"],
           "series": [{
             "name": "<region_name_1>",
             "data": [<value_1>, <value_2>,...,<value_n>]
@@ -86,14 +87,14 @@ def get_time_series(value_type, regions):
 
     entries = HistoricalData.objects\
         .filter(region__in=[region_mapper[region] for region in regions])\
-        .exclude(**{value_type_mapper[value_type]+"__isnull": True})
+        .filter(value_type=value_type_mapper[value_type])
 
     potential_max = potential_min = (entries[0].year, entries[0].month)
     dd = defaultdict(lambda: defaultdict(lambda: None))
     for entry in entries:
         potential_min = min((entry.year, entry.month), potential_min)
         potential_max = max((entry.year, entry.month), potential_max)
-        dd[(entry.year, entry.month)][entry.region] = getattr(entry, value_type_mapper[value_type])
+        dd[(entry.year, entry.month)][entry.region] = entry.value
 
     year_month_tuples = _create_list_of_tuples(potential_min, potential_max)
 
@@ -158,20 +159,44 @@ def create_or_update_data_point(
         raise ValueError(
                 "Argument: {} is not a valid value_type enum".format(value_type))
 
-    entry, _ = HistoricalData.objects.get_or_create(
-        region=region_key,
-        year=year,
-        month=month_key)
-    setattr(entry, value_type_key, value)
+    try:
+        entry = HistoricalData.objects.get(
+            region=region_key,
+            year=year,
+            month=month_key,
+            value_type=value_type_key)
+    except HistoricalData.DoesNotExist:
+        entry = HistoricalData.objects.create(
+            region=region_key,
+            year=year,
+            month=month_key,
+            value_type=value_type_key,
+            value=value)
+    else:
+        entry.value=value
     entry.save()
 
 
 class HistoricalData(models.Model):
+    """Models a single data point.
+
+    Fields:
+      year: Integer representing a year.
+      month: Integer representing the month of the year. (January is 1, Febuary
+        is 2, etc.)
+      region: Integer representing a region - as returned by the
+        region-mapper.
+      value_type: Integer representing a value_type - as returned by the
+        value-type-mapper 
+      value: Float.
+    """
+    _non_empty_string = MinLengthValidator(1)
     year = models.PositiveSmallIntegerField()
     month = models.PositiveSmallIntegerField()
-    region = models.PositiveSmallIntegerField()
-    max_temp = models.FloatField(null=True)
-    min_temp = models.FloatField(null=True)
-    mean_temp = models.FloatField(null=True)
-    sunshine = models.FloatField(null=True)
-    rainfall = models.FloatField(null=True)
+    region = models.CharField(max_length=20, validators=[_non_empty_string])
+    value_type = models.CharField(max_length=20, validators=[_non_empty_string])
+    value = models.FloatField()
+
+    def save(self, *args, **kwargs):
+        self.clean_fields()
+        super().save(*args, **kwargs)
