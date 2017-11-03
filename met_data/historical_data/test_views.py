@@ -1,6 +1,6 @@
 from unittest.mock import patch
 from django.test import TestCase, Client
-from historical_data.met_data_getter import ValueType, Region
+from historical_data.data import ValueType, Region
 
 class TimeSeriesViewTest(TestCase):
 

@@ -2,8 +2,12 @@ from django.http import HttpResponse, JsonResponse, HttpResponseNotFound
 from django.shortcuts import render
 from django.template import loader
 
-from historical_data.met_data_getter import ValueType, Region
-from historical_data.models import get_time_series
+from historical_data.data import (
+    get_time_series,
+    DataPoint,
+    Month,
+    Region,
+    ValueType)
 
 def index(request):
     template = loader.get_template("historical_data/index.html")

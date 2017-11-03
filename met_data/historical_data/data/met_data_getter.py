@@ -3,10 +3,12 @@ from os import linesep
 from collections import namedtuple
 from enum import Enum
 
-import numpy
+from requests import get 
 from pandas import read_csv
 
+
 DataPoint = namedtuple("DataPoint", "region year month value_type value")
+
 
 class Month(Enum):
     JAN = 1
@@ -22,11 +24,13 @@ class Month(Enum):
     NOV = 11
     DEC = 12
 
+
 class Region(Enum):
     UK = 1
     ENGLAND = 2
     SCOTLAND = 3
     WALES = 4
+
 
 class ValueType(Enum):
     MAX_TEMP = 1
@@ -35,37 +39,51 @@ class ValueType(Enum):
     SUNSHINE = 4
     RAINFALL = 5
 
-from requests import get 
-import pandas
 
-def get_raw_data(url):
-    """Gets the raw data text file.
-
-    Arg:
-      url: The url of the text file.
-
-    Raises:
-      HttpError if request is not successful.
+def get_met_data(region, value_type):
+    """Gets data from the met office website.
+    
+    Args:
+      region: A region enum.
+      value_type: A value type enum.
 
     Returns:
-      A file-like object containing the text file.
+      A set of datapoints.
     """
+    region_string = {
+        Region.UK: "UK",
+        Region.ENGLAND: "England",
+        Region.SCOTLAND: "Scotland",
+        Region.WALES: "Wales"}
+    value_type_string = {
+        ValueType.MAX_TEMP: "Tmax",
+        ValueType.MIN_TEMP: "Tmin",
+        ValueType.MEAN_TEMP: "Tmean",
+        ValueType.SUNSHINE: "Sunshine",
+        ValueType.RAINFALL: "Rainfall"}
+
+    url = "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/{vty}/date/{reg}.txt".format(
+        vty=value_type_string[value_type],
+        reg=region_string[region])
+
+    raw_data = _get_raw_data(url)
+    pre_processed_data = _pre_process_data(raw_data)
+    return _get_data(pre_processed_data, region, value_type)
+
+
+def _get_raw_data(url):
     response = get(url)
     response.raise_for_status()
     return response.text
 
-def remove_blurb(input_text):
-    """Strips non-data from file.
 
-    Arg:
-      A file like object. 
+def _pre_process_data(input_text):
+    return _replace_missing_entries_with_x(
+        _remove_blurb(
+            input_text))
 
-    Returns:
-      A file-like object with: 
-        - all lines up to and including the first blank line removed.
-        - "X" characters added to represent cells for missing months in the
-          final row.
-    """
+
+def _remove_blurb(input_text):
     string_list = input_text.splitlines()
 
     empty_line_found=False
@@ -73,6 +91,12 @@ def remove_blurb(input_text):
         if string_list[0].strip() == "":
             empty_line_found = True
         string_list.pop(0)
+    
+    return linesep.join(string_list)
+
+
+def _replace_missing_entries_with_x(input_text):
+    string_list = input_text.splitlines()
 
     penultimate_string = string_list[-2]
     ultimate_string_as_list = list(string_list[-1])
@@ -83,7 +107,8 @@ def remove_blurb(input_text):
     
     return linesep.join(string_list)
 
-def get_data(input_text, region=Region.UK, value_type=ValueType.MAX_TEMP):
+
+def _get_data(input_text, region=Region.UK, value_type=ValueType.MAX_TEMP):
     
     months = [
         "JAN",
@@ -113,27 +138,3 @@ def get_data(input_text, region=Region.UK, value_type=ValueType.MAX_TEMP):
                     DataPoint(region, year, Month[month], value_type, value))
 
     return data_points
-
-def get_met_data(region, value_type):
-    """Gets data from the met office website.
-    
-    """
-    region_string = {
-        Region.UK: "UK",
-        Region.ENGLAND: "England",
-        Region.SCOTLAND: "Scotland",
-        Region.WALES: "Wales"}
-    value_type_string = {
-        ValueType.MAX_TEMP: "Tmax",
-        ValueType.MIN_TEMP: "Tmin",
-        ValueType.MEAN_TEMP: "Tmean",
-        ValueType.SUNSHINE: "Sunshine",
-        ValueType.RAINFALL: "Rainfall"}
-
-    url = "https://www.metoffice.gov.uk/pub/data/weather/uk/climate/datasets/{vty}/date/{reg}.txt".format(
-        vty=value_type_string[value_type],
-        reg=region_string[region])
-
-    raw_data = get_raw_data(url)
-    pre_processed_data = remove_blurb(raw_data)
-    return get_data(pre_processed_data, region, value_type)
