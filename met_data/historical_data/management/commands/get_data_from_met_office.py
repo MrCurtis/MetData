@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from historical_data.met_data_getter import Region, ValueType, get_met_data
-from historical_data.models import create_or_update_data_point
+from historical_data.data.met_data_getter import Region, ValueType, get_met_data
+from historical_data.data import create_or_update_data_point
 
 class Command(BaseCommand):
     help = 'Gets historical meteorological data from the Met Office'
@@ -13,4 +13,4 @@ class Command(BaseCommand):
                 for data_point in data_points:
                     create_or_update_data_point(*data_point)
     
-        self.stdout.write(self.style.SUCCESS('Successfully got Met Office data'))
+        self.stdout.write(self.style.SUCCESS('Successfully got Met Office data.'))
