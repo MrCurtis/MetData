@@ -1,7 +1,10 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from historical_data.data.met_data_getter import Region, ValueType, get_met_data
-from historical_data.data import create_or_update_data_point
+from historical_data.data import (
+    Region,
+    ValueType,
+    get_met_data,
+    create_or_update_data_point)
 
 class Command(BaseCommand):
     help = 'Gets historical meteorological data from the Met Office'
