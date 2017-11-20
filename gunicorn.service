@@ -1,0 +1,16 @@
+[Unit]
+Description=gunicorn daemon
+RequiresMountsFor=/vagrant
+
+[Service]
+TimeoutStartSec=infinity
+PermissionsStartOnly=true
+PIDFile=/run/gunicorn/pid
+User=root
+Group=www-data
+WorkingDirectory=/vagrant/met_data
+ExecStart=/usr/local/bin/gunicorn met_data.wsgi --config=/etc/gunicorn/gunicorn.conf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

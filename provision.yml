@@ -1,6 +1,11 @@
 ---
 - hosts: all
   become: true
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
   tasks:
     - name: Install pip for python3
       apt:
@@ -28,7 +33,38 @@
       django_manage:
         command: "get_data_from_met_office"
         app_path: "/vagrant/met_data/"
-    - name: Start the django server in background
-      shell: 'cd /vagrant/met_data; nohup python manage.py runserver 0:8000 </dev/null >/dev/null 2>&1 &'
-      args:
-        chdir: '/vagrant/met_data'
+    - name: Make directory for static files
+      file:
+        name: "/var/www/met_data/static"
+        state: directory
+    - name: Collect static files
+      django_manage:
+        command: 'collectstatic'
+        app_path: '/vagrant/met_data/'
+    - name: Install gunicorn
+      pip:
+        name: gunicorn
+    - name: Copy over gunicorn config
+      copy:
+        src: "gunicorn.conf"
+        dest: "/etc/gunicorn/"
+    - name: Copy over gunicorn service file
+      copy:
+        src: "gunicorn.service"
+        dest: "/etc/systemd/system/gunicorn.service"
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: Copy over nginx configuration file
+      copy:
+        src: "nginx.conf"
+        dest: "/etc/nginx/nginx.conf"
+      notify:
+        - reload nginx
+    - name: Start gunicorn server
+      service:
+        name: gunicorn
+        state: started
