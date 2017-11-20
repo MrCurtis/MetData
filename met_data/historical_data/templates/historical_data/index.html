@@ -6,9 +6,9 @@
     <title>Met Data</title>
     <link href="{% static "historical_data/main.css" %}" rel="stylesheet" type="text/css" media="all">
   </head>
-  <body style="margin: 0;">
+  <body>
     <div class="wrapper-div">
-    <div id="selector-panel" style="width:100%;">
+    <div id="selector-panel">
 	    <p>Data Type</p>
 	    <div id="type-select">
 		    <input type="radio" id="select-rainfall" name="value-type" value="rainfall"/>
@@ -35,7 +35,7 @@
 	    </div>
     </div>    
     <div>
-    <div id="plot" style="width:100%;"></div>
+    <div id="plot"></div>
     <script
 	src="https://code.jquery.com/jquery-3.2.1.min.js"
 	integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="

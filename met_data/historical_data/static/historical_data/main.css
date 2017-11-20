@@ -1,12 +1,10 @@
+body {
+	margin: 0;
+}
+
 .wrapper-div{
-	text-align:center
+	text-align: center;
 }
-#selector-panel input {
-	display: inline-block
-}
-#selector-panel input {
-	  display: none;
- }
 
 #selector-panel label {
 	display: inline-block;
@@ -16,7 +14,14 @@
 	font-size: 16px;
 	cursor: pointer;
 }
-
+#selector-panel input {
+	display: none;
+	width: 100%;
+ }
 #selector-panel input:checked+label {
 	background-color: #aaa;
+}
+
+#plot {
+	width: 100%;
 }
